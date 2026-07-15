@@ -1,0 +1,22 @@
+name: Deploy Automático
+on:
+  push:
+    branches:
+      - main  # Se ejecuta cuando haces push a la rama main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy en Servidor
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd "C:/Users/mdfvt/OneDrive/Documentos/Cloud computing/aplicaciones/mi_aplicacion_web"
+            git pull origin main
+            docker-compose build
+            docker-compose up -d
