@@ -3,23 +3,43 @@ version: '3.8'
 services:
   web:
     build: .
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     volumes:
       - .:/app
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql+psycopg2://postgres:techsecure2026@db:5432/techcommerce_db
     depends_on:
       - db
 
+  admin_panel:
+    build: .
+    # MEJORA 1: Añadimos parámetros para evitar errores de renderizado y headless
+    command: python -m streamlit run admin_panel.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    environment:
+      - API_URL=http://web:8000
+      # MEJORA 2: Estas variables evitan que Streamlit intente abrir el navegador o recolectar estadísticas
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    depends_on:
+      - web
+
   db:
     image: postgres:15.3
-    environment:
-      POSTGRES_USER: mi_usuario
-      POSTGRES_PASSWORD: mi_password
-      POSTGRES_DB: mi_base_datos
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=techsecure2026
+      - POSTGRES_DB=techcommerce_db
+    ports:
+      - "5432:5432"
 
 volumes:
   postgres_data:

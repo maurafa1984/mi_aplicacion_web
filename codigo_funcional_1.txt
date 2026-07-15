@@ -1,12 +1,12 @@
 import os
 from typing import List
-from datetime import datetime  # <--- ESTA ES LA QUE FALTA
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from fastapi.middleware.cors import CORSMiddleware
+
 
 # --- Configuración de Base de Datos ---
 DB_HOST = "db" if os.getenv("IS_DOCKER") else "localhost"
@@ -49,15 +49,6 @@ class LicenciaSoftwareDB(Base):
     
     producto = relationship("ProductoDB", back_populates="licencias")
 
-class VentaDB(Base):
-    __tablename__ = "ventas"
-    id = Column(Integer, primary_key=True, index=True)
-    producto_id = Column(Integer, ForeignKey("productos.id"))
-    cantidad = Column(Integer, nullable=False)
-    total = Column(Float, nullable=False)
-    fecha = Column(String(50))
-    
-    producto = relationship("ProductoDB")
 
 # Crear tablas
 Base.metadata.create_all(bind=engine)
@@ -88,16 +79,6 @@ class LicenciaResponse(BaseModel):
     id: int
     codigo: str
     descripcion: str
-    class Config: from_attributes = True
-
-class VentaCreate(BaseModel):
-    producto_id: int
-    cantidad: int
-
-class VentaResponse(VentaCreate):
-    id: int
-    total: float
-    fecha: str
     class Config: from_attributes = True
 
 
@@ -207,54 +188,3 @@ def editar_clave(producto_id: int, clave_id: int, lic_data: LicenciaCreate, db: 
     db.refresh(db_clave)
     
     return {"id": db_clave.id, "codigo": db_clave.clave_activacion, "descripcion": db_clave.descripcion}
-
-@app.post("/ventas/", response_model=VentaResponse, status_code=201)
-def realizar_venta(venta: VentaCreate, db: Session = Depends(get_db)):
-    # 1. Verificar si el producto existe
-    producto = db.query(ProductoDB).filter(ProductoDB.id == venta.producto_id).first()
-    if not producto:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
-    # 2. Verificar si hay stock suficiente
-    if producto.stock < venta.cantidad:
-        raise HTTPException(status_code=400, detail="Stock insuficiente")
-    
-    # 3. Calcular total y registrar venta
-    total_venta = producto.precio * venta.cantidad
-    nueva_venta = VentaDB(
-        producto_id=venta.producto_id,
-        cantidad=venta.cantidad,
-        total=total_venta,
-        fecha=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
-    
-@app.get("/ventas/", response_model=List[VentaResponse])
-def listar_ventas(db: Session = Depends(get_db)):
-     ventas = db.query(VentaDB).all()
-     return ventas
-    
-@app.get("/ventas/{venta_id}/factura")
-def generar_factura(venta_id: int, db: Session = Depends(get_db)):
-    venta = db.query(VentaDB).filter(VentaDB.id == venta_id).first()
-    if not venta:
-        raise HTTPException(status_code=404, detail="Venta no encontrada")
-    
-    # Buscamos el nombre del producto relacionado
-    producto = db.query(ProductoDB).filter(ProductoDB.id == venta.producto_id).first()
-    nombre_producto = producto.nombre if producto else "Producto Desconocido"
-    
-    return {
-        "factura_id": f"FAC-{venta.id}",
-        "fecha": venta.fecha,
-        "producto_nombre": nombre_producto, # Nuevo campo
-        "cantidad": venta.cantidad,
-        "total_pagado": venta.total
-    }
-
-    # 4. Actualizar stock
-    producto.stock -= venta.cantidad
-    
-    db.add(nueva_venta)
-    db.commit()
-    db.refresh(nueva_venta)
-    return nueva_venta
