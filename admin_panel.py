@@ -32,7 +32,7 @@ if menu == "Inicio":
 elif menu == "Ver Inventario":
     st.header("📦 Inventario Actual")
     try:
-        res = requests.get(f"{API_URL}/productos")
+        res = requests.get(f"{API_URL}/productos", verify=False)
         if res.status_code == 200:
             st.table(res.json())
         else:
@@ -50,7 +50,7 @@ elif menu == "Crear Producto":
         
         if st.form_submit_button("Guardar Producto"):
             payload = {"nombre": nombre, "precio": precio, "categoria": categoria, "stock": stock}
-            res = requests.post(f"{API_URL}/productos/", json=payload) # Asegúrate de la barra final si tu API la requiere
+            res = requests.post(f"{API_URL}/productos/", json=payload,verify=False) # Asegúrate de la barra final si tu API la requiere
             
             # Aceptamos tanto 200 como 201
             if res.status_code in [200, 201]:
@@ -66,7 +66,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
         st.session_state.producto_a_editar = None
 
     if st.button("Cargar Datos del Producto"):
-        res = requests.get(f"{API_URL}/productos/{int(pid)}")
+        res = requests.get(f"{API_URL}/productos/{int(pid)}", verify=False)
         if res.status_code == 200:
             st.session_state.producto_a_editar = res.json()
             st.success(f"Producto cargado: {res.json()['nombre']}")
@@ -86,7 +86,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
             
             if st.form_submit_button("Confirmar Cambios"):
                 payload = {"nombre": n_nombre, "precio": n_precio, "categoria": n_cat, "stock": n_stock}
-                res = requests.put(f"{API_URL}/productos/{pid}", json=payload)
+                res = requests.put(f"{API_URL}/productos/{pid}", json=payload, verify=False)
                 if res.status_code == 200:
                     st.success("¡Producto actualizado exitosamente!")
                     st.session_state.producto_a_editar = None
@@ -95,7 +95,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
 
     st.divider()
     if st.button("❌ ELIMINAR ESTE PRODUCTO"):
-        res = requests.delete(f"{API_URL}/productos/{int(pid)}")
+        res = requests.delete(f"{API_URL}/productos/{int(pid)}", verify=False)
         if res.status_code == 200:
             st.warning("Producto eliminado permanentemente")
             st.session_state.producto_a_editar = None
@@ -134,7 +134,7 @@ elif menu == "Cargar Licencias":
         if st.form_submit_button("Registrar Licencia"):
             payload = {"producto_id": id_producto, "codigo": codigo, "descripcion": descripcion}
             # Cambia la línea de la petición para asegurarte de usar la barra final
-            res = requests.post(f"{API_URL}/productos/{id_producto}/claves/", json=payload)
+            res = requests.post(f"{API_URL}/productos/{id_producto}/claves/", json=payload, verify=False)
             
             
             if res.status_code in [200, 201]:
@@ -150,7 +150,7 @@ elif menu == "Editar Licencia":
     lic_id = st.number_input("ID de la Licencia a editar:", min_value=1, step=1)
     
     if st.button("Buscar Licencia"):
-        res = requests.get(f"{API_URL}/productos/{pid}/claves")
+        res = requests.get(f"{API_URL}/productos/{pid}/claves", verify=False)
         if res.status_code == 200:
             claves = res.json()
             # Muestra los IDs disponibles para que el usuario sepa cuáles existen
@@ -204,7 +204,7 @@ elif menu == "Gestión de Ventas":
 
     with tab2:
         st.subheader("Historial de Ventas")
-        res = requests.get(f"{API_URL}/ventas/")
+        res = requests.get(f"{API_URL}/ventas/", verify=False)
         if res.status_code == 200:
             ventas = res.json()
             for v in ventas:
