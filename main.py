@@ -108,6 +108,16 @@ class VentaResponse(VentaCreate):
 # --- Inicialización App ---
 app = FastAPI(title="TechCommerce API")
 
+from seed import poblar_base_de_datos 
+
+@app.get("/ejecutar-seed/")
+def ejecutar_limpieza():
+    try:
+        poblar_base_de_datos()
+        return {"mensaje": "Base de datos reiniciada con éxito"}
+    except Exception as e:
+        return {"error": str(e)}
+# ------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -120,6 +130,7 @@ def get_db():
     db = SessionLocal()
     try: yield db
     finally: db.close()
+
 
 
 # --- Endpoints de Productos ---
