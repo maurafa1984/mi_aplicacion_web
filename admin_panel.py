@@ -34,7 +34,7 @@ if menu == "Inicio":
 elif menu == "Ver Inventario":
     st.header("📦 Inventario Actual")
     try:
-        res = session.get(f"{API_URL}/productos")
+        res = session.get(f"{API_URL}/productos/")
         if res.status_code == 200:
             st.table(res.json())
         else:
@@ -52,14 +52,13 @@ elif menu == "Crear Producto":
         
         if st.form_submit_button("Guardar Producto"):
             payload = {"nombre": nombre, "precio": precio, "categoria": categoria, "stock": stock}
-            # Probamos la llamada sin la barra al final
-            url_peticion = f"{API_URL}/productos"
+            # Añadida barra final para coincidir con main.py
+            url_peticion = f"{API_URL}/productos/"
             res = session.post(url_peticion, json=payload)
             
             if res.status_code in [200, 201]:
                 st.success("Producto creado correctamente")
             else:
-                # Esto nos dirá exactamente por qué falla:
                 st.error(f"Error {res.status_code} al llamar a {url_peticion}: {res.text}")
                 
 elif menu == "Gestión Avanzada (Editar/Eliminar)":
@@ -70,7 +69,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
         st.session_state.producto_a_editar = None
 
     if st.button("Cargar Datos del Producto"):
-        res = session.get(f"{API_URL}/productos/{int(pid)}")
+        res = session.get(f"{API_URL}/productos/{int(pid)}/")
         if res.status_code == 200:
             st.session_state.producto_a_editar = res.json()
             st.success(f"Producto cargado: {res.json()['nombre']}")
@@ -90,7 +89,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
             
             if st.form_submit_button("Confirmar Cambios"):
                 payload = {"nombre": n_nombre, "precio": n_precio, "categoria": n_cat, "stock": n_stock}
-                res = session.put(f"{API_URL}/productos/{pid}", json=payload)
+                res = session.put(f"{API_URL}/productos/{pid}/", json=payload)
                 if res.status_code == 200:
                     st.success("¡Producto actualizado exitosamente!")
                     st.session_state.producto_a_editar = None
@@ -99,7 +98,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
 
     st.divider()
     if st.button("❌ ELIMINAR ESTE PRODUCTO"):
-        res = session.delete(f"{API_URL}/productos/{int(pid)}")
+        res = session.delete(f"{API_URL}/productos/{int(pid)}/")
         if res.status_code == 200:
             st.warning("Producto eliminado permanentemente")
             st.session_state.producto_a_editar = None
@@ -110,11 +109,11 @@ elif menu == "Ver Licencias por ID":
     st.header("🔑 Consultar Licencias por ID")
     pid_licencia = st.number_input("Ingresa el ID del producto:", min_value=1, step=1)
     if st.button("Consultar Licencias"):
-        res_prod = session.get(f"{API_URL}/productos/{int(pid_licencia)}")
+        res_prod = session.get(f"{API_URL}/productos/{int(pid_licencia)}/")
         if res_prod.status_code == 200:
             producto = res_prod.json()
             st.subheader(f"Producto: {producto['nombre']}")
-            res_claves = session.get(f"{API_URL}/productos/{int(pid_licencia)}/claves")
+            res_claves = session.get(f"{API_URL}/productos/{int(pid_licencia)}/claves/")
             if res_claves.status_code == 200:
                 claves = res_claves.json()
                 if claves:
@@ -150,7 +149,7 @@ elif menu == "Editar Licencia":
     lic_id = st.number_input("ID de la Licencia a editar:", min_value=1, step=1)
     
     if st.button("Buscar Licencia"):
-        res = session.get(f"{API_URL}/productos/{pid}/claves")
+        res = session.get(f"{API_URL}/productos/{pid}/claves/")
         if res.status_code == 200:
             claves = res.json()
             ids_disponibles = [item.get('id', 'N/A') for item in claves]
@@ -172,7 +171,7 @@ elif menu == "Editar Licencia":
             
             if st.form_submit_button("Guardar Cambios"):
                 payload = {"codigo": nuevo_codigo, "descripcion": nueva_desc}
-                res = session.put(f"{API_URL}/productos/{pid}/claves/{lic_id}", json=payload)
+                res = session.put(f"{API_URL}/productos/{pid}/claves/{lic_id}/", json=payload)
                 if res.status_code in [200, 201]:
                     st.success("¡Licencia actualizada!")
                     st.session_state.licencia_a_editar = None
@@ -207,7 +206,7 @@ elif menu == "Gestión de Ventas":
                     col1.write(f"**Venta #{v['id']}** | Prod ID: {v['producto_id']} | Cant: {v['cantidad']} | Total: ${v['total']}")
                     
                     if col2.button("🧾 Facturar", key=f"fact_{v['id']}"):
-                        res_fact = session.get(f"{API_URL}/ventas/{v['id']}/factura")
+                        res_fact = session.get(f"{API_URL}/ventas/{v['id']}/factura/")
                         if res_fact.status_code == 200:
                             factura = res_fact.json()
                             st.success("Factura generada:")

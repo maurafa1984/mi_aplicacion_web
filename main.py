@@ -1,6 +1,6 @@
 import os
 from typing import List
-from datetime import datetime  # <--- ESTA ES LA QUE FALTA
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
@@ -9,9 +9,6 @@ from sqlalchemy.orm import sessionmaker, Session, relationship
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- Configuración de Base de Datos ---
-# --- Configuración de Base de Datos ---
-# Intentamos leer la variable de Render primero.
-# Si no existe, usamos el valor por defecto para desarrollo local.
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -140,14 +137,14 @@ def listar_productos(db: Session = Depends(get_db)):
     return db.query(ProductoDB).all()
 
 
-@app.get("/productos/{producto_id}", response_model=ProductoResponse)
+@app.get("/productos/{producto_id}/", response_model=ProductoResponse)
 def consultar_producto(producto_id: int, db: Session = Depends(get_db)):
     prod = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
     if not prod: raise HTTPException(status_code=404, detail="Producto no encontrado")
     return prod
 
 
-@app.put("/productos/{producto_id}", response_model=ProductoResponse)
+@app.put("/productos/{producto_id}/", response_model=ProductoResponse)
 def editar_producto(producto_id: int, producto_data: ProductoCreate, db: Session = Depends(get_db)):
     db_producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
     if not db_producto: raise HTTPException(status_code=404, detail="Producto no encontrado")
@@ -158,7 +155,7 @@ def editar_producto(producto_id: int, producto_data: ProductoCreate, db: Session
     return db_producto
 
 
-@app.delete("/productos/{producto_id}")
+@app.delete("/productos/{producto_id}/")
 def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
     db_producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
     if not db_producto: raise HTTPException(status_code=404, detail="Producto no encontrado")
@@ -168,21 +165,16 @@ def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
 
 
 # --- Endpoints de Licencias ---
-# En main.py, revisa que este endpoint devuelva 'id'
-@app.get("/productos/{producto_id}/claves", response_model=List[LicenciaResponse])
+@app.get("/productos/{producto_id}/claves/", response_model=List[LicenciaResponse])
 def obtener_claves(producto_id: int, db: Session = Depends(get_db)):
-    # 1. Verificamos producto
     if not db.query(ProductoDB).filter(ProductoDB.id == producto_id).first():
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
-    # 2. Obtenemos las licencias
     licencias = db.query(LicenciaSoftwareDB).filter(LicenciaSoftwareDB.producto_id == producto_id).all()
-    
-    # 3. AQUÍ ESTÁ EL CAMBIO: Debemos enviar el 'id' explícitamente
     return [{"id": l.id, "codigo": l.clave_activacion, "descripcion": l.descripcion} for l in licencias]
 
 
-@app.post("/productos/{producto_id}/claves", status_code=201)
+@app.post("/productos/{producto_id}/claves/", status_code=201)
 def crear_clave(producto_id: int, licencia: LicenciaCreate, db: Session = Depends(get_db)):
     if not db.query(ProductoDB).filter(ProductoDB.id == producto_id).first():
         raise HTTPException(status_code=404, detail="Producto no encontrado")
@@ -197,7 +189,7 @@ def crear_clave(producto_id: int, licencia: LicenciaCreate, db: Session = Depend
     return {"message": "Licencia registrada correctamente"}
 
 
-@app.put("/productos/{producto_id}/claves/{clave_id}", response_model=LicenciaResponse)
+@app.put("/productos/{producto_id}/claves/{clave_id}/", response_model=LicenciaResponse)
 def editar_clave(producto_id: int, clave_id: int, lic_data: LicenciaCreate, db: Session = Depends(get_db)):
     db_clave = db.query(LicenciaSoftwareDB).filter(
         LicenciaSoftwareDB.id == clave_id, 
@@ -217,16 +209,13 @@ def editar_clave(producto_id: int, clave_id: int, lic_data: LicenciaCreate, db: 
 
 @app.post("/ventas/", response_model=VentaResponse, status_code=201)
 def realizar_venta(venta: VentaCreate, db: Session = Depends(get_db)):
-    # 1. Verificar si el producto existe
     producto = db.query(ProductoDB).filter(ProductoDB.id == venta.producto_id).first()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
-    # 2. Verificar si hay stock suficiente
     if producto.stock < venta.cantidad:
         raise HTTPException(status_code=400, detail="Stock insuficiente")
     
-    # 3. Calcular total y registrar venta
     total_venta = producto.precio * venta.cantidad
     nueva_venta = VentaDB(
         producto_id=venta.producto_id,
@@ -235,33 +224,30 @@ def realizar_venta(venta: VentaCreate, db: Session = Depends(get_db)):
         fecha=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
     
+    producto.stock -= venta.cantidad
+    db.add(nueva_venta)
+    db.commit()
+    db.refresh(nueva_venta)
+    return nueva_venta
+    
 @app.get("/ventas/", response_model=List[VentaResponse])
 def listar_ventas(db: Session = Depends(get_db)):
      ventas = db.query(VentaDB).all()
      return ventas
     
-@app.get("/ventas/{venta_id}/factura")
+@app.get("/ventas/{venta_id}/factura/")
 def generar_factura(venta_id: int, db: Session = Depends(get_db)):
     venta = db.query(VentaDB).filter(VentaDB.id == venta_id).first()
     if not venta:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
     
-    # Buscamos el nombre del producto relacionado
     producto = db.query(ProductoDB).filter(ProductoDB.id == venta.producto_id).first()
     nombre_producto = producto.nombre if producto else "Producto Desconocido"
     
     return {
         "factura_id": f"FAC-{venta.id}",
         "fecha": venta.fecha,
-        "producto_nombre": nombre_producto, # Nuevo campo
+        "producto_nombre": nombre_producto,
         "cantidad": venta.cantidad,
         "total_pagado": venta.total
     }
-
-    # 4. Actualizar stock
-    producto.stock -= venta.cantidad
-    
-    db.add(nueva_venta)
-    db.commit()
-    db.refresh(nueva_venta)
-    return nueva_venta
