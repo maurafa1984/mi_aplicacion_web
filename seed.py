@@ -7,6 +7,13 @@ from main import Base, ProductoDB, DetalleHardwareDB
 # Configuración de la conexión (usa la misma URL que tu contenedor)
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:techsecure2026@localhost:5432/techcommerce_db")
 engine = create_engine(DATABASE_URL)
+
+# --- INICIO DE MODIFICACIÓN ---
+# CUIDADO: Esto borra TODAS las tablas existentes y las recrea vacías
+Base.metadata.drop_all(bind=engine)
+Base.metadata.create_all(bind=engine)
+# --- FIN DE MODIFICACIÓN ---
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def poblar_base_de_datos():
