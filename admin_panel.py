@@ -6,7 +6,7 @@ import os
 print("--- PASO 3: OS importado ---")
 
 # Configuración de la URL de la API
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = st.secrets.get("API_URL", "https://mi_aplicacion_web.onrender.com")
 print(f"--- PASO 4: URL de la API configurada: {API_URL} ---")
 
 # --- MENÚ DE NAVEGACIÓN ---
