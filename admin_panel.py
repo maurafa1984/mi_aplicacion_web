@@ -52,13 +52,16 @@ elif menu == "Crear Producto":
         
         if st.form_submit_button("Guardar Producto"):
             payload = {"nombre": nombre, "precio": precio, "categoria": categoria, "stock": stock}
-            res = session.post(f"{API_URL}/productos", json=payload)
+            # Probamos la llamada sin la barra al final
+            url_peticion = f"{API_URL}/productos"
+            res = session.post(url_peticion, json=payload)
             
             if res.status_code in [200, 201]:
                 st.success("Producto creado correctamente")
             else:
-                st.error(f"Error {res.status_code}: {res.text}")
-
+                # Esto nos dirá exactamente por qué falla:
+                st.error(f"Error {res.status_code} al llamar a {url_peticion}: {res.text}")
+                
 elif menu == "Gestión Avanzada (Editar/Eliminar)":
     st.header("⚙️ Gestión de Productos")
     pid = st.number_input("Ingresa ID del Producto para cargar datos:", min_value=1, step=1)
