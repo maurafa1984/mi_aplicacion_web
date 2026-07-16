@@ -5,6 +5,20 @@ on: [push]
 jobs:
   pruebas:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15.3 # Usamos la misma versión que en tu docker-compose
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: techsecure2026
+          POSTGRES_DB: techcommerce_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
       - name: Configurar Python
@@ -17,4 +31,7 @@ jobs:
           pip install pytest
           pip install -r requirements.txt
       - name: Correr tests
+        env:
+          # Esta variable debe coincidir con la estructura que tu código espera
+          DATABASE_URL: postgresql+psycopg2://postgres:techsecure2026@localhost:5432/techcommerce_db
         run: pytest test_main.py
