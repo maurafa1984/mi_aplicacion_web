@@ -9,7 +9,7 @@ session = requests.Session()
 session.verify = False
 
 # Configuración de la URL de la API
-API_URL = st.secrets.get("API_URL", "https://mi_aplicacion_web.onrender.com")
+API_URL = st.secrets.get("API_URL", "https://mi-aplicacion-web-2qzl.onrender.com")
 
 # --- MENÚ DE NAVEGACIÓN ---
 st.sidebar.title("Navegación")
