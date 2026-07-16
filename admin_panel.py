@@ -52,12 +52,12 @@ elif menu == "Crear Producto":
         
         if st.form_submit_button("Guardar Producto"):
             payload = {"nombre": nombre, "precio": precio, "categoria": categoria, "stock": stock}
-            res = session.post(f"{API_URL}/productos/", json=payload)
+            res = session.post(f"{API_URL}/productos", json=payload)
             
             if res.status_code in [200, 201]:
                 st.success("Producto creado correctamente")
             else:
-                st.error(f"Error al crear producto: {res.status_code}")
+                st.error(f"Error {res.status_code}: {res.text}")
 
 elif menu == "Gestión Avanzada (Editar/Eliminar)":
     st.header("⚙️ Gestión de Productos")
