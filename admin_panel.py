@@ -1,15 +1,15 @@
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import streamlit as st
-print("--- PASO 1: Streamlit importado ---")
 import requests
-print("--- PASO 2: Requests importado ---")
+import urllib3
 import os
-print("--- PASO 3: OS importado ---")
+
+# --- CORRECCIÓN SSL ---
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+session = requests.Session()
+session.verify = False
 
 # Configuración de la URL de la API
 API_URL = st.secrets.get("API_URL", "https://mi_aplicacion_web.onrender.com")
-print(f"--- PASO 4: URL de la API configurada: {API_URL} ---")
 
 # --- MENÚ DE NAVEGACIÓN ---
 st.sidebar.title("Navegación")
@@ -34,7 +34,7 @@ if menu == "Inicio":
 elif menu == "Ver Inventario":
     st.header("📦 Inventario Actual")
     try:
-        res = requests.get(f"{API_URL}/productos", verify=False)
+        res = session.get(f"{API_URL}/productos")
         if res.status_code == 200:
             st.table(res.json())
         else:
@@ -52,9 +52,8 @@ elif menu == "Crear Producto":
         
         if st.form_submit_button("Guardar Producto"):
             payload = {"nombre": nombre, "precio": precio, "categoria": categoria, "stock": stock}
-            res = requests.post(f"{API_URL}/productos/", json=payload,verify=False) # Asegúrate de la barra final si tu API la requiere
+            res = session.post(f"{API_URL}/productos/", json=payload)
             
-            # Aceptamos tanto 200 como 201
             if res.status_code in [200, 201]:
                 st.success("Producto creado correctamente")
             else:
@@ -68,7 +67,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
         st.session_state.producto_a_editar = None
 
     if st.button("Cargar Datos del Producto"):
-        res = requests.get(f"{API_URL}/productos/{int(pid)}", verify=False)
+        res = session.get(f"{API_URL}/productos/{int(pid)}")
         if res.status_code == 200:
             st.session_state.producto_a_editar = res.json()
             st.success(f"Producto cargado: {res.json()['nombre']}")
@@ -88,7 +87,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
             
             if st.form_submit_button("Confirmar Cambios"):
                 payload = {"nombre": n_nombre, "precio": n_precio, "categoria": n_cat, "stock": n_stock}
-                res = requests.put(f"{API_URL}/productos/{pid}", json=payload, verify=False)
+                res = session.put(f"{API_URL}/productos/{pid}", json=payload)
                 if res.status_code == 200:
                     st.success("¡Producto actualizado exitosamente!")
                     st.session_state.producto_a_editar = None
@@ -97,7 +96,7 @@ elif menu == "Gestión Avanzada (Editar/Eliminar)":
 
     st.divider()
     if st.button("❌ ELIMINAR ESTE PRODUCTO"):
-        res = requests.delete(f"{API_URL}/productos/{int(pid)}", verify=False)
+        res = session.delete(f"{API_URL}/productos/{int(pid)}")
         if res.status_code == 200:
             st.warning("Producto eliminado permanentemente")
             st.session_state.producto_a_editar = None
@@ -108,11 +107,11 @@ elif menu == "Ver Licencias por ID":
     st.header("🔑 Consultar Licencias por ID")
     pid_licencia = st.number_input("Ingresa el ID del producto:", min_value=1, step=1)
     if st.button("Consultar Licencias"):
-        res_prod = requests.get(f"{API_URL}/productos/{int(pid_licencia)}")
+        res_prod = session.get(f"{API_URL}/productos/{int(pid_licencia)}")
         if res_prod.status_code == 200:
             producto = res_prod.json()
             st.subheader(f"Producto: {producto['nombre']}")
-            res_claves = requests.get(f"{API_URL}/productos/{int(pid_licencia)}/claves")
+            res_claves = session.get(f"{API_URL}/productos/{int(pid_licencia)}/claves")
             if res_claves.status_code == 200:
                 claves = res_claves.json()
                 if claves:
@@ -135,31 +134,24 @@ elif menu == "Cargar Licencias":
         
         if st.form_submit_button("Registrar Licencia"):
             payload = {"producto_id": id_producto, "codigo": codigo, "descripcion": descripcion}
-            # Cambia la línea de la petición para asegurarte de usar la barra final
-            res = requests.post(f"{API_URL}/productos/{id_producto}/claves/", json=payload, verify=False)
-            
+            res = session.post(f"{API_URL}/productos/{id_producto}/claves/", json=payload)
             
             if res.status_code in [200, 201]:
                 st.success("¡Licencia registrada con éxito!")
             else:
-                # Esto te ayudará a ver qué está pasando si vuelve a fallar
                 st.error(f"Error al registrar la licencia (Código {res.status_code}): {res.text}")
 
 elif menu == "Editar Licencia":
     st.header("✏️ Editar Licencia")
-    # Necesitas pedir ambos IDs porque tu API no tiene un endpoint global de claves
     pid = st.number_input("ID del Producto:", min_value=1, step=1)
     lic_id = st.number_input("ID de la Licencia a editar:", min_value=1, step=1)
     
     if st.button("Buscar Licencia"):
-        res = requests.get(f"{API_URL}/productos/{pid}/claves", verify=False)
+        res = session.get(f"{API_URL}/productos/{pid}/claves")
         if res.status_code == 200:
             claves = res.json()
-            # Muestra los IDs disponibles para que el usuario sepa cuáles existen
             ids_disponibles = [item.get('id', 'N/A') for item in claves]
             st.info(f"IDs encontrados para este producto: {ids_disponibles}")
-            
-            # Buscamos la licencia seleccionada
             licencia = next((item for item in claves if str(item.get('id')) == str(lic_id)), None)
             
             if licencia:
@@ -176,10 +168,8 @@ elif menu == "Editar Licencia":
             nueva_desc = st.text_input("Nueva Descripción", value=lic['descripcion'])
             
             if st.form_submit_button("Guardar Cambios"):
-                # IMPORTANTE: Si tu API no tiene PUT /productos/{pid}/claves/{lic_id},
-                # este paso fallará. ¿Tu API tiene un PUT para editar claves?
                 payload = {"codigo": nuevo_codigo, "descripcion": nueva_desc}
-                res = requests.put(f"{API_URL}/productos/{pid}/claves/{lic_id}", json=payload)
+                res = session.put(f"{API_URL}/productos/{pid}/claves/{lic_id}", json=payload)
                 if res.status_code in [200, 201]:
                     st.success("¡Licencia actualizada!")
                     st.session_state.licencia_a_editar = None
@@ -188,7 +178,6 @@ elif menu == "Editar Licencia":
 
 elif menu == "Gestión de Ventas":
     st.header("🛒 Gestión de Ventas")
-    
     tab1, tab2 = st.tabs(["Registrar Venta", "Ver Historial y Facturas"])
 
     with tab1:
@@ -198,7 +187,7 @@ elif menu == "Gestión de Ventas":
             enviar = st.form_submit_button("Confirmar Venta")
             
             if enviar:
-                response = requests.post(f"{API_URL}/ventas/", json={"producto_id": int(prod_id), "cantidad": int(cantidad)})
+                response = session.post(f"{API_URL}/ventas/", json={"producto_id": int(prod_id), "cantidad": int(cantidad)})
                 if response.status_code == 201:
                     st.success("¡Venta registrada con éxito!")
                 else:
@@ -206,7 +195,7 @@ elif menu == "Gestión de Ventas":
 
     with tab2:
         st.subheader("Historial de Ventas")
-        res = requests.get(f"{API_URL}/ventas/", verify=False)
+        res = session.get(f"{API_URL}/ventas/")
         if res.status_code == 200:
             ventas = res.json()
             for v in ventas:
@@ -215,7 +204,7 @@ elif menu == "Gestión de Ventas":
                     col1.write(f"**Venta #{v['id']}** | Prod ID: {v['producto_id']} | Cant: {v['cantidad']} | Total: ${v['total']}")
                     
                     if col2.button("🧾 Facturar", key=f"fact_{v['id']}"):
-                        res_fact = requests.get(f"{API_URL}/ventas/{v['id']}/factura")
+                        res_fact = session.get(f"{API_URL}/ventas/{v['id']}/factura")
                         if res_fact.status_code == 200:
                             factura = res_fact.json()
                             st.success("Factura generada:")
