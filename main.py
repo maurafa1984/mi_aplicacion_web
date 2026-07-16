@@ -9,8 +9,10 @@ from sqlalchemy.orm import sessionmaker, Session, relationship
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- Configuración de Base de Datos ---
+# --- Configuración de Base de Datos ---
 DB_HOST = "db" if os.getenv("IS_DOCKER") else "localhost"
 DATABASE_URL = f"postgresql+psycopg2://postgres:techsecure2026@{DB_HOST}:5432/techcommerce_db"
+engine = create_engine(DATABASE_URL)
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
