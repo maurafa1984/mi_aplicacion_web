@@ -251,3 +251,10 @@ def generar_factura(venta_id: int, db: Session = Depends(get_db)):
         "cantidad": venta.cantidad,
         "total_pagado": venta.total
     }
+
+from seed import poblar_base_de_datos # Asegúrate de tener este import arriba
+
+@app.get("/ejecutar-seed/")
+def ejecutar_limpieza():
+    poblar_base_de_datos()
+    return {"mensaje": "Base de datos reiniciada con éxito"}
