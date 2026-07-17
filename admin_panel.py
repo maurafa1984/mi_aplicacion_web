@@ -2,12 +2,14 @@ import streamlit as st
 import requests
 import urllib3
 import os
+from datetime import datetime # 1. Importa datetime
 
 # --- CORRECCIÓN SSL ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 session = requests.Session()
 session.verify = False
 
+fecha_actual = datetime.now().strftime("%d/%m/%Y")
 # Configuración de la URL de la API
 API_URL = st.secrets.get("API_URL", "https://mi-aplicacion-web-2qzl.onrender.com")
 
