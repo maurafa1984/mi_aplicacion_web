@@ -30,7 +30,13 @@ menu = st.sidebar.selectbox("Selecciona una opción", opciones)
 # --- LÓGICA DE LAS OPCIONES ---
 
 if menu == "Inicio":
-    st.title("Panel Administrativo")
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.title("Panel Administrativo")
+    with col2:
+        # Aquí es donde le decimos a Streamlit que muestre la fecha
+        st.markdown(f"**Fecha:** {fecha_actual}")
+    
     st.write("Bienvenido al sistema de gestión de TechCommerce.")
 
 elif menu == "Ver Inventario":
